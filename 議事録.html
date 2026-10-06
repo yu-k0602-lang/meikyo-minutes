@@ -1,0 +1,1402 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>会議・商談 議事録アプリ</title>
+<style>
+:root{
+  --blue:#2563eb; --blue-dark:#1d4ed8; --bg:#f4f6f9; --card:#ffffff;
+  --border:#e2e6ec; --text:#1f2937; --sub:#6b7280; --green:#16a34a;
+  --amber:#d97706; --red:#dc2626; --purple:#7c3aed; --radius:10px;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:"Segoe UI","Hiragino Kaku Gothic ProN","Yu Gothic",Meiryo,sans-serif;
+  background:var(--bg); color:var(--text); -webkit-text-size-adjust:100%;
+}
+button{font-family:inherit; cursor:pointer;}
+input,textarea,select{font-family:inherit;}
+.app{max-width:1100px; margin:0 auto; padding:12px 12px 60px;}
+
+/* Header */
+header.top{
+  position:sticky; top:0; z-index:50; background:var(--blue);
+  color:#fff; padding:14px 16px; border-radius:0 0 12px 12px; margin-bottom:14px;
+  display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;
+}
+header.top h1{font-size:18px; margin:0; display:flex; align-items:center; gap:8px;}
+
+/* Tabs */
+.tabs{display:flex; gap:6px; margin-bottom:14px; background:var(--card); padding:6px; border-radius:10px; border:1px solid var(--border); flex-wrap:wrap;}
+.tab-btn{
+  flex:1 1 30%; padding:12px 6px; border:none; background:transparent; border-radius:8px;
+  font-size:13px; font-weight:600; color:var(--sub); min-height:44px;
+}
+.tab-btn.active{background:var(--blue); color:#fff;}
+.tab-btn.deal-tab.active{background:var(--purple);}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
+
+/* Card */
+.card{background:var(--card); border:1px solid var(--border); border-radius:var(--radius); padding:16px; margin-bottom:14px;}
+.card h2{font-size:15px; margin:0 0 12px; display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap;}
+.card h2 .sub-actions{display:flex; gap:6px; flex-wrap:wrap;}
+.field{margin-bottom:12px;}
+.field label{display:block; font-size:12px; color:var(--sub); margin-bottom:4px; font-weight:600;}
+.field input[type=text], .field input[type=date], .field input[type=time], .field input[type=number], .field textarea, .field select{
+  width:100%; padding:10px 12px; border:1px solid var(--border); border-radius:8px; font-size:14px; background:#fff;
+}
+.row2{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+.row3{display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px;}
+@media (max-width:600px){.row2{grid-template-columns:1fr;} .row3{grid-template-columns:1fr;}}
+
+/* Participants chips */
+.chip-input{display:flex; flex-wrap:wrap; gap:6px; padding:8px; border:1px solid var(--border); border-radius:8px; background:#fff;}
+.chip{background:#eef2ff; color:var(--blue-dark); padding:6px 10px; border-radius:999px; font-size:13px; display:flex; align-items:center; gap:6px;}
+.chip.purple{background:#f3e8ff; color:var(--purple);}
+.chip button{background:none; border:none; color:inherit; font-size:14px; line-height:1; padding:0;}
+.chip-input input{border:none; outline:none; flex:1; min-width:100px; padding:6px; font-size:14px;}
+
+/* Buttons */
+.btn{padding:10px 14px; border-radius:8px; border:1px solid var(--border); background:#fff; font-size:13px; font-weight:600; min-height:40px; color:var(--text);}
+.btn:active{transform:scale(0.98);}
+.btn-primary{background:var(--blue); border-color:var(--blue); color:#fff;}
+.btn-primary-deal{background:var(--purple); border-color:var(--purple); color:#fff;}
+.btn-outline{background:#fff; border-color:var(--blue); color:var(--blue);}
+.btn-outline-deal{background:#fff; border-color:var(--purple); color:var(--purple);}
+.btn-danger{background:#fff; border-color:var(--red); color:var(--red);}
+.btn-sm{padding:6px 10px; font-size:12px; min-height:32px;}
+.btn-block{width:100%;}
+.btn-group{display:flex; gap:8px; flex-wrap:wrap;}
+
+/* Sections (agenda / memo items) */
+.sect-item{border:1px solid var(--border); border-radius:8px; padding:12px; margin-bottom:10px; background:#fafbfc;}
+.sect-item-head{display:flex; gap:8px; align-items:center; margin-bottom:8px; flex-wrap:wrap;}
+.sect-item-head input{flex:1; font-weight:700; padding:8px 10px; border:1px solid var(--border); border-radius:6px; min-width:120px;}
+.sect-item textarea{width:100%; min-height:90px; padding:10px; border:1px solid var(--border); border-radius:6px; font-size:14px; resize:vertical;}
+.sect-tools{display:flex; gap:6px; margin-top:6px; flex-wrap:wrap;}
+
+/* Action items */
+.action-item{display:grid; grid-template-columns:auto 1fr; gap:8px; align-items:start; border:1px solid var(--border); border-radius:8px; padding:10px; margin-bottom:8px; background:#fafbfc;}
+.action-item.done{opacity:0.6;}
+.action-item .content{width:100%; border:1px solid var(--border); border-radius:6px; padding:8px; font-size:14px; margin-bottom:6px;}
+.action-item .meta-row{display:grid; grid-template-columns:1fr 1fr 1fr auto; gap:6px;}
+@media (max-width:600px){.action-item .meta-row{grid-template-columns:1fr 1fr; }}
+.action-item .meta-row select, .action-item .meta-row input{padding:6px 8px; font-size:12px; border:1px solid var(--border); border-radius:6px;}
+.chk{width:20px; height:20px; margin-top:8px;}
+.status-badge{display:inline-block; padding:2px 8px; border-radius:999px; font-size:11px; font-weight:700;}
+.status-未着手{background:#f1f5f9; color:#475569;}
+.status-進行中{background:#fef3c7; color:var(--amber);}
+.status-完了{background:#dcfce7; color:var(--green);}
+
+/* Contact rows (deal) */
+.contact-row{display:grid; grid-template-columns:1fr 1fr auto; gap:8px; margin-bottom:8px;}
+@media (max-width:600px){.contact-row{grid-template-columns:1fr 1fr; } .contact-row .btn{grid-column:1/3;}}
+.contact-row input{padding:8px 10px; border:1px solid var(--border); border-radius:6px; font-size:14px;}
+
+/* Phase badges */
+.phase-badge{display:inline-block; padding:2px 10px; border-radius:999px; font-size:11px; font-weight:700;}
+.phase-見込み{background:#e0f2fe; color:#0369a1;}
+.phase-検討中{background:#fef3c7; color:var(--amber);}
+.phase-提案中{background:#ede9fe; color:var(--purple);}
+.phase-最終検討{background:#fee2e2; color:#b91c1c;}
+.phase-受注{background:#dcfce7; color:var(--green);}
+.phase-失注{background:#f3f4f6; color:#6b7280;}
+
+/* List view */
+.search-bar{display:flex; gap:8px; margin-bottom:12px;}
+.search-bar input{flex:1; padding:10px 12px; border:1px solid var(--border); border-radius:8px; font-size:14px;}
+.meeting-row{border:1px solid var(--border); border-radius:8px; padding:12px; margin-bottom:8px; background:#fff; display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap;}
+.meeting-row .info{flex:1; min-width:180px;}
+.meeting-row .info .t{font-weight:700; font-size:14px;}
+.meeting-row .info .d{font-size:12px; color:var(--sub); margin-top:2px;}
+.empty-msg{text-align:center; color:var(--sub); padding:30px 10px; font-size:14px;}
+.tpl-group-title{font-size:13px; font-weight:700; color:var(--sub); margin:16px 0 8px; padding-top:8px; border-top:1px solid var(--border);}
+.tpl-group-title:first-child{margin-top:0; padding-top:0; border-top:none;}
+
+/* Modal */
+.modal-overlay{
+  display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); z-index:200;
+  align-items:center; justify-content:center; padding:20px;
+}
+.modal-overlay.open{display:flex;}
+.modal-box{
+  background:#fff; border-radius:12px; width:100%; max-width:480px; max-height:88vh;
+  overflow-y:auto; padding:20px; display:flex; flex-direction:column;
+}
+.modal-box h3{margin:0 0 12px; font-size:16px;}
+.modal-actions{display:flex; gap:8px; justify-content:flex-end; margin-top:16px;}
+
+/* Toast */
+.toast{
+  position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
+  background:#1f2937; color:#fff; padding:10px 18px; border-radius:8px; font-size:13px;
+  z-index:300; opacity:0; pointer-events:none; transition:opacity 0.25s;
+}
+.toast.show{opacity:1;}
+
+/* Print */
+#printArea{display:none;}
+@media print{
+  header.top, .tabs, .no-print{display:none !important;}
+  .tab-panel{display:none !important;}
+  #printArea{display:block !important;}
+  body{background:#fff;}
+  .print-title{font-size:20px; font-weight:800; margin-bottom:4px;}
+  .print-meta{font-size:13px; color:#333; margin-bottom:14px;}
+  .print-meta div{margin-bottom:2px;}
+  .print-agenda h4{font-size:14px; margin:14px 0 4px; border-bottom:2px solid #333; padding-bottom:3px;}
+  .print-agenda pre{white-space:pre-wrap; font-family:inherit; font-size:13px; margin:0;}
+  table.print-table{width:100%; border-collapse:collapse; margin-top:10px;}
+  table.print-table th, table.print-table td{border:1px solid #999; padding:6px 8px; font-size:12px; text-align:left;}
+}
+.hint{font-size:12px; color:var(--sub); margin-top:4px;}
+.status-line{font-size:12px; color:var(--sub); margin-bottom:10px;}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top">
+    <h1>📝 会議・商談 議事録アプリ</h1>
+  </header>
+
+  <div class="tabs no-print">
+    <button class="tab-btn active" data-tab="editor">会議：作成・編集</button>
+    <button class="tab-btn" data-tab="list">会議：一覧</button>
+    <button class="tab-btn deal-tab" data-tab="dealEditor">商談：作成・編集</button>
+    <button class="tab-btn deal-tab" data-tab="dealList">商談：一覧</button>
+    <button class="tab-btn" data-tab="templates">テンプレート</button>
+  </div>
+
+  <!-- ================= MEETING EDITOR TAB ================= -->
+  <div class="tab-panel active" id="tab-editor">
+
+    <div class="card">
+      <h2>基本情報
+        <div class="sub-actions">
+          <button class="btn btn-sm btn-outline" id="btnNewMeeting">新規作成</button>
+        </div>
+      </h2>
+      <div class="field">
+        <label>会議名</label>
+        <input type="text" id="fTitle" placeholder="例：第3回 営業部定例会議">
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label>日付</label>
+          <input type="date" id="fDate">
+        </div>
+        <div class="field">
+          <label>時刻</label>
+          <input type="time" id="fTime">
+        </div>
+      </div>
+      <div class="field">
+        <label>場所</label>
+        <input type="text" id="fLocation" placeholder="例：本社4F会議室 / Web会議">
+      </div>
+      <div class="field">
+        <label>参加者</label>
+        <div class="chip-input" id="participantBox">
+          <input type="text" id="fParticipantInput" placeholder="名前を入力してEnter">
+        </div>
+      </div>
+      <div class="field" style="margin-bottom:0;">
+        <label>テンプレートから議題を読み込む</label>
+        <select id="fApplyTemplate">
+          <option value="">-- 選択してください --</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>議題・議事メモ
+        <div class="sub-actions">
+          <button class="btn btn-sm btn-primary" id="btnAddAgenda">＋ 議題を追加</button>
+        </div>
+      </h2>
+      <div id="agendaList"></div>
+      <div class="hint">各議題のメモ欄で範囲選択すると「ToDo化」ボタンでアクションアイテムに変換できます。「⏱」で現在時刻を挿入できます。</div>
+    </div>
+
+    <div class="card">
+      <h2>ToDo / アクションアイテム
+        <div class="sub-actions">
+          <button class="btn btn-sm btn-primary" id="btnAddAction">＋ 手動で追加</button>
+        </div>
+      </h2>
+      <div id="actionList"></div>
+      <div class="empty-msg" id="actionEmpty">アクションアイテムはまだありません</div>
+    </div>
+
+    <div class="card no-print">
+      <h2>保存・出力</h2>
+      <div class="status-line" id="statusMeeting">未保存</div>
+      <div class="btn-group">
+        <button class="btn btn-primary" id="btnSave">💾 保存</button>
+        <button class="btn btn-outline" id="btnSaveAsTemplate">📑 テンプレートとして保存</button>
+        <button class="btn btn-outline" id="btnExportJsonOne">⬇ この議事録をJSON出力</button>
+        <button class="btn btn-outline" id="btnExportPdf">🖨 PDF出力（印刷）</button>
+        <button class="btn btn-outline" id="btnExportWord">📄 Word出力</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MEETING LIST TAB ================= -->
+  <div class="tab-panel" id="tab-list">
+    <div class="card">
+      <h2>会議：保存済み一覧
+        <div class="sub-actions">
+          <button class="btn btn-sm btn-outline" id="btnExportJsonAll">⬇ 全件JSON出力（会議+商談+テンプレート）</button>
+          <button class="btn btn-sm btn-outline" id="btnImportJson">⬆ JSON取込</button>
+        </div>
+      </h2>
+      <input type="file" id="fileImport" accept="application/json" style="display:none;">
+      <div class="search-bar">
+        <input type="text" id="searchBox" placeholder="会議名・参加者・場所で検索">
+      </div>
+      <div id="meetingListArea"></div>
+    </div>
+  </div>
+
+  <!-- ================= DEAL EDITOR TAB ================= -->
+  <div class="tab-panel" id="tab-dealEditor">
+
+    <div class="card">
+      <h2>基本情報
+        <div class="sub-actions">
+          <button class="btn btn-sm btn-outline-deal" id="btnNewDeal">新規作成</button>
+        </div>
+      </h2>
+      <div class="field">
+        <label>商談タイトル（案件名）</label>
+        <input type="text" id="dTitle" placeholder="例：〇〇株式会社様 新システム導入案件">
+      </div>
+      <div class="row3">
+        <div class="field">
+          <label>日付</label>
+          <input type="date" id="dDate">
+        </div>
+        <div class="field">
+          <label>時刻</label>
+          <input type="time" id="dTime">
+        </div>
+        <div class="field">
+          <label>商談種別</label>
+          <select id="dDealType">
+            <option value="">-- 選択 --</option>
+            <option>初回訪問</option>
+            <option>ヒアリング</option>
+            <option>提案</option>
+            <option>見積提示</option>
+            <option>クロージング</option>
+            <option>フォロー</option>
+            <option>その他</option>
+          </select>
+        </div>
+      </div>
+      <div class="field">
+        <label>場所</label>
+        <input type="text" id="dLocation" placeholder="例：先方オフィス / Web会議">
+      </div>
+      <div class="field">
+        <label>自社担当者</label>
+        <div class="chip-input" id="dealParticipantBox">
+          <input type="text" id="dParticipantInput" placeholder="名前を入力してEnter">
+        </div>
+      </div>
+      <div class="field" style="margin-bottom:0;">
+        <label>テンプレートから確認事項を読み込む</label>
+        <select id="dApplyTemplate">
+          <option value="">-- 選択してください --</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>顧客情報
+        <div class="sub-actions">
+          <button class="btn btn-sm btn-primary-deal" id="btnAddContact">＋ 先方担当者を追加</button>
+        </div>
+      </h2>
+      <div class="field">
+        <label>会社名</label>
+        <input type="text" id="dCompany" placeholder="例：〇〇株式会社">
+      </div>
+      <div class="field" style="margin-bottom:0;">
+        <label>先方担当者</label>
+        <div id="contactList"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>商談状況</h2>
+      <div class="row2">
+        <div class="field">
+          <label>フェーズ</label>
+          <select id="dPhase">
+            <option value="">-- 選択 --</option>
+            <option>見込み</option>
+            <option>検討中</option>
+            <option>提案中</option>
+            <option>最終検討</option>
+            <option>受注</option>
+            <option>失注</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>受注確度（%）</label>
+          <input type="number" id="dProbability" min="0" max="100" placeholder="例：60">
+        </div>
+      </div>
+      <div class="row2">
+        <div class="field">
+          <label>予算</label>
+          <input type="text" id="dBudget" placeholder="例：500万円 / 未確認">
+        </div>
+        <div class="field">
+          <label>決裁者</label>
+          <input type="text" id="dDecisionMaker" placeholder="例：〇〇部長が最終決裁">
+        </div>
+      </div>
+      <div class="field" style="margin-bottom:0;">
+        <label>競合情報</label>
+        <textarea id="dCompetitors" style="min-height:60px;" placeholder="競合他社・比較状況など"></textarea>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>商談メモ・確認事項
+        <div class="sub-actions">
+          <button class="btn btn-sm btn-primary-deal" id="btnAddDealSection">＋ 項目を追加</button>
+        </div>
+      </h2>
+      <div id="dealSectionsList"></div>
+      <div class="hint">メモ欄で範囲選択すると「ToDo化」ボタンでアクションアイテムに変換できます。</div>
+    </div>
+
+    <div class="card">
+      <h2>次回アクション</h2>
+      <div class="row2">
+        <div class="field">
+          <label>次回訪問・連絡予定日</label>
+          <input type="date" id="dNextVisitDate">
+        </div>
+        <div class="field" style="margin-bottom:0;">
+          <label>次回アクション内容</label>
+          <input type="text" id="dNextAction" placeholder="例：見積書を送付し来週打合せ設定">
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>ToDo / アクションアイテム
+        <div class="sub-actions">
+          <button class="btn btn-sm btn-primary-deal" id="btnAddDealAction">＋ 手動で追加</button>
+        </div>
+      </h2>
+      <div id="dealActionList"></div>
+      <div class="empty-msg" id="dealActionEmpty">アクションアイテムはまだありません</div>
+    </div>
+
+    <div class="card no-print">
+      <h2>保存・出力</h2>
+      <div class="status-line" id="statusDeal">未保存</div>
+      <div class="btn-group">
+        <button class="btn btn-primary-deal" id="btnSaveDeal">💾 保存</button>
+        <button class="btn btn-outline-deal" id="btnSaveDealAsTemplate">📑 テンプレートとして保存</button>
+        <button class="btn btn-outline-deal" id="btnExportDealJsonOne">⬇ この商談をJSON出力</button>
+        <button class="btn btn-outline-deal" id="btnExportDealPdf">🖨 PDF出力（印刷）</button>
+        <button class="btn btn-outline-deal" id="btnExportDealWord">📄 Word出力</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= DEAL LIST TAB ================= -->
+  <div class="tab-panel" id="tab-dealList">
+    <div class="card">
+      <h2>商談：保存済み一覧
+        <div class="sub-actions">
+          <button class="btn btn-sm btn-outline-deal" id="btnExportJsonAllDeal">⬇ 全件JSON出力（会議+商談+テンプレート）</button>
+          <button class="btn btn-sm btn-outline-deal" id="btnImportJsonDeal">⬆ JSON取込</button>
+        </div>
+      </h2>
+      <input type="file" id="fileImportDeal" accept="application/json" style="display:none;">
+      <div class="search-bar">
+        <input type="text" id="dealSearchBox" placeholder="商談タイトル・会社名・担当者で検索">
+      </div>
+      <div id="dealListArea"></div>
+    </div>
+  </div>
+
+  <!-- ================= TEMPLATES TAB ================= -->
+  <div class="tab-panel" id="tab-templates">
+    <div class="card">
+      <h2>テンプレート一覧</h2>
+      <div class="tpl-group-title">会議用テンプレート</div>
+      <div id="templateListAreaMeeting"></div>
+      <div class="tpl-group-title">商談用テンプレート</div>
+      <div id="templateListAreaDeal"></div>
+      <div class="hint">テンプレートは項目タイトルと基本の担当者のみを保存します（メモ内容は含みません）。</div>
+    </div>
+  </div>
+</div>
+
+<!-- Print area -->
+<div id="printArea">
+  <div class="print-title" id="pTitle"></div>
+  <div class="print-meta" id="pMeta"></div>
+  <div class="print-agenda" id="pAgenda"></div>
+  <div id="pActionWrap"></div>
+</div>
+
+<!-- Generic Confirm Modal -->
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal-box">
+    <h3 id="confirmTitle">確認</h3>
+    <div id="confirmBody" style="font-size:14px; color:var(--sub);"></div>
+    <div class="modal-actions">
+      <button class="btn" id="confirmCancel">キャンセル</button>
+      <button class="btn btn-primary" id="confirmOk">OK</button>
+    </div>
+  </div>
+</div>
+
+<!-- Prompt Modal -->
+<div class="modal-overlay" id="promptModal">
+  <div class="modal-box">
+    <h3 id="promptTitle">入力</h3>
+    <div class="field">
+      <input type="text" id="promptInput">
+    </div>
+    <div class="modal-actions">
+      <button class="btn" id="promptCancel">キャンセル</button>
+      <button class="btn btn-primary" id="promptOk">OK</button>
+    </div>
+  </div>
+</div>
+
+<!-- Action item quick-add from selection modal -->
+<div class="modal-overlay" id="actionFromSelModal">
+  <div class="modal-box">
+    <h3>ToDo として追加</h3>
+    <div class="field">
+      <label>内容</label>
+      <textarea id="asContent" style="min-height:70px;"></textarea>
+    </div>
+    <div class="row2">
+      <div class="field">
+        <label>担当者</label>
+        <input type="text" id="asAssignee">
+      </div>
+      <div class="field">
+        <label>期限</label>
+        <input type="date" id="asDue">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" id="asCancel">キャンセル</button>
+      <button class="btn btn-primary" id="asOk">追加</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+"use strict";
+
+/* ---------------- Storage keys ---------------- */
+var K_MEETINGS = "meikyo-minutes-meetings-v1";
+var K_DEALS = "meikyo-minutes-deals-v1";
+var K_TEMPLATES = "meikyo-minutes-templates-v1";
+var K_DRAFT = "meikyo-minutes-draft-v1";
+var K_DRAFT_DEAL = "meikyo-minutes-draft-deal-v1";
+
+/* ---------------- Utilities ---------------- */
+function uid(){ return "id-" + Date.now().toString(36) + "-" + Math.random().toString(36).slice(2,8); }
+function nowTimeStr(){
+  var d = new Date();
+  var hh = String(d.getHours()).padStart(2,"0");
+  var mm = String(d.getMinutes()).padStart(2,"0");
+  return "["+hh+":"+mm+"] ";
+}
+function todayStr(){
+  var d = new Date();
+  return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+}
+function escapeHtml(s){
+  if(s===undefined||s===null) return "";
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+function loadJSON(key, fallback){
+  try{
+    var raw = localStorage.getItem(key);
+    if(!raw) return fallback;
+    return JSON.parse(raw);
+  }catch(e){ return fallback; }
+}
+function saveJSON(key, val){
+  try{ localStorage.setItem(key, JSON.stringify(val)); return true; }
+  catch(e){ toast("保存に失敗しました（ストレージ容量の可能性）"); return false; }
+}
+function toast(msg){
+  var t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(t._timer);
+  t._timer = setTimeout(function(){ t.classList.remove("show"); }, 2400);
+}
+function downloadBlob(filename, blob){
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement("a");
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){ document.body.removeChild(a); URL.revokeObjectURL(url); }, 500);
+}
+function safeFileName(s){ return String(s).replace(/[\\/:*?"<>|]/g,"_"); }
+
+/* ---------------- Confirm / Prompt modal helpers ---------------- */
+var confirmModal = document.getElementById("confirmModal");
+var confirmTitle = document.getElementById("confirmTitle");
+var confirmBody = document.getElementById("confirmBody");
+var confirmOkBtn = document.getElementById("confirmOk");
+var confirmCancelBtn = document.getElementById("confirmCancel");
+function showConfirm(title, body, onOk){
+  confirmTitle.textContent = title;
+  confirmBody.textContent = body;
+  confirmModal.classList.add("open");
+  function cleanup(){
+    confirmModal.classList.remove("open");
+    confirmOkBtn.removeEventListener("click", okHandler);
+    confirmCancelBtn.removeEventListener("click", cancelHandler);
+  }
+  function okHandler(){ cleanup(); onOk && onOk(); }
+  function cancelHandler(){ cleanup(); }
+  confirmOkBtn.addEventListener("click", okHandler);
+  confirmCancelBtn.addEventListener("click", cancelHandler);
+}
+
+var promptModal = document.getElementById("promptModal");
+var promptTitle = document.getElementById("promptTitle");
+var promptInput = document.getElementById("promptInput");
+var promptOkBtn = document.getElementById("promptOk");
+var promptCancelBtn = document.getElementById("promptCancel");
+function showPrompt(title, defVal, onOk){
+  promptTitle.textContent = title;
+  promptInput.value = defVal || "";
+  promptModal.classList.add("open");
+  setTimeout(function(){ promptInput.focus(); }, 50);
+  function cleanup(){
+    promptModal.classList.remove("open");
+    promptOkBtn.removeEventListener("click", okHandler);
+    promptCancelBtn.removeEventListener("click", cancelHandler);
+  }
+  function okHandler(){
+    var v = promptInput.value.trim();
+    cleanup();
+    if(v) onOk && onOk(v);
+  }
+  function cancelHandler(){ cleanup(); }
+  promptOkBtn.addEventListener("click", okHandler);
+  promptCancelBtn.addEventListener("click", cancelHandler);
+}
+
+/* Action-from-selection modal (shared by meeting & deal) */
+var actionFromSelModal = document.getElementById("actionFromSelModal");
+var asContent = document.getElementById("asContent");
+var asAssignee = document.getElementById("asAssignee");
+var asDue = document.getElementById("asDue");
+var actionModalTarget = null; // { getArray, onChange, refresh }
+function openActionFromSelection(text, ctx){
+  actionModalTarget = ctx;
+  asContent.value = text; asAssignee.value = ""; asDue.value = "";
+  actionFromSelModal.classList.add("open");
+}
+document.getElementById("asCancel").addEventListener("click", function(){
+  actionFromSelModal.classList.remove("open");
+});
+document.getElementById("asOk").addEventListener("click", function(){
+  if(actionModalTarget){
+    actionModalTarget.getArray().push({
+      id: uid(), content: asContent.value.trim(), assignee: asAssignee.value.trim(),
+      dueDate: asDue.value, status:"未着手"
+    });
+    actionModalTarget.onChange();
+    actionModalTarget.refresh();
+  }
+  actionFromSelModal.classList.remove("open");
+  toast("ToDoに追加しました");
+});
+
+/* ---------------- Generic controllers ---------------- */
+function makeChipController(boxEl, inputEl, getArray, onChange, chipClass){
+  function render(){
+    boxEl.querySelectorAll(".chip").forEach(function(c){ c.remove(); });
+    getArray().forEach(function(name, idx){
+      var chip = document.createElement("span");
+      chip.className = "chip" + (chipClass ? " "+chipClass : "");
+      chip.innerHTML = escapeHtml(name) + ' <button type="button" data-idx="'+idx+'">✕</button>';
+      boxEl.insertBefore(chip, inputEl);
+    });
+    boxEl.querySelectorAll(".chip button").forEach(function(btn){
+      btn.addEventListener("click", function(){
+        getArray().splice(parseInt(btn.dataset.idx,10),1);
+        render(); onChange();
+      });
+    });
+  }
+  inputEl.addEventListener("keydown", function(e){
+    if(e.key === "Enter"){
+      e.preventDefault();
+      var v = inputEl.value.trim();
+      if(v){ getArray().push(v); inputEl.value = ""; render(); onChange(); }
+    }
+  });
+  return { render: render };
+}
+
+function makeSectionsController(containerEl, getArray, defaultTitlePrefix, onChange, getTodoCtx){
+  function render(){
+    containerEl.innerHTML = "";
+    getArray().forEach(function(item, idx){
+      var div = document.createElement("div");
+      div.className = "sect-item";
+      div.innerHTML =
+        '<div class="sect-item-head">'+
+          '<input type="text" class="ag-title" value="'+escapeHtml(item.title)+'" placeholder="タイトル">'+
+          '<button class="btn btn-sm" data-act="up" title="上へ">↑</button>'+
+          '<button class="btn btn-sm" data-act="down" title="下へ">↓</button>'+
+          '<button class="btn btn-sm btn-danger" data-act="del" title="削除">削除</button>'+
+        '</div>'+
+        '<textarea class="ag-notes" placeholder="メモを入力...">'+escapeHtml(item.notes)+'</textarea>'+
+        '<div class="sect-tools">'+
+          '<button class="btn btn-sm btn-outline" data-act="time">⏱ 現在時刻を挿入</button>'+
+          '<button class="btn btn-sm btn-outline" data-act="todo">✅ 選択範囲をToDo化</button>'+
+        '</div>';
+
+      var titleInput = div.querySelector(".ag-title");
+      titleInput.addEventListener("input", function(){ item.title = titleInput.value; onChange(); });
+
+      var notesArea = div.querySelector(".ag-notes");
+      notesArea.addEventListener("input", function(){ item.notes = notesArea.value; onChange(); });
+
+      div.querySelector('[data-act="up"]').addEventListener("click", function(){
+        if(idx === 0) return;
+        var arr = getArray();
+        var tmp = arr[idx-1]; arr[idx-1] = arr[idx]; arr[idx] = tmp;
+        render(); onChange();
+      });
+      div.querySelector('[data-act="down"]').addEventListener("click", function(){
+        var arr = getArray();
+        if(idx === arr.length-1) return;
+        var tmp = arr[idx+1]; arr[idx+1] = arr[idx]; arr[idx] = tmp;
+        render(); onChange();
+      });
+      div.querySelector('[data-act="del"]').addEventListener("click", function(){
+        showConfirm("項目を削除", "「"+(item.title||"無題")+"」を削除しますか？", function(){
+          getArray().splice(idx, 1); render(); onChange();
+        });
+      });
+      div.querySelector('[data-act="time"]').addEventListener("click", function(){
+        var pos = notesArea.selectionStart || notesArea.value.length;
+        var stamp = nowTimeStr();
+        notesArea.value = notesArea.value.slice(0,pos) + stamp + notesArea.value.slice(pos);
+        item.notes = notesArea.value;
+        notesArea.focus();
+        var newPos = pos + stamp.length;
+        notesArea.setSelectionRange(newPos, newPos);
+        onChange();
+      });
+      div.querySelector('[data-act="todo"]').addEventListener("click", function(){
+        var start = notesArea.selectionStart, end = notesArea.selectionEnd;
+        var sel = notesArea.value.slice(start, end).trim();
+        if(!sel){ toast("メモ内でテキストを選択してください"); return; }
+        openActionFromSelection(sel, getTodoCtx());
+      });
+
+      containerEl.appendChild(div);
+    });
+  }
+  return {
+    render: render,
+    addItem: function(){
+      var arr = getArray();
+      arr.push({ id: uid(), title: defaultTitlePrefix+(arr.length+1), notes: "" });
+      render(); onChange();
+    }
+  };
+}
+
+function makeActionController(containerEl, emptyEl, getArray, onChange){
+  function render(){
+    containerEl.innerHTML = "";
+    var arr = getArray();
+    emptyEl.style.display = arr.length ? "none" : "block";
+    arr.forEach(function(a, idx){
+      var div = document.createElement("div");
+      div.className = "action-item" + (a.status === "完了" ? " done" : "");
+      div.innerHTML =
+        '<input type="checkbox" class="chk" '+(a.status==="完了"?"checked":"")+'>'+
+        '<div style="width:100%;">'+
+          '<textarea class="content" rows="2">'+escapeHtml(a.content)+'</textarea>'+
+          '<div class="meta-row">'+
+            '<input type="text" class="a-assignee" placeholder="担当者" value="'+escapeHtml(a.assignee)+'">'+
+            '<input type="date" class="a-due" value="'+escapeHtml(a.dueDate)+'">'+
+            '<select class="a-status">'+
+              ['未着手','進行中','完了'].map(function(s){ return '<option value="'+s+'"'+(a.status===s?" selected":"")+'>'+s+'</option>'; }).join("")+
+            '</select>'+
+            '<button class="btn btn-sm btn-danger" data-act="del">削除</button>'+
+          '</div>'+
+        '</div>';
+
+      div.querySelector(".chk").addEventListener("change", function(e){
+        a.status = e.target.checked ? "完了" : "未着手"; render(); onChange();
+      });
+      div.querySelector(".content").addEventListener("input", function(e){ a.content = e.target.value; onChange(); });
+      div.querySelector(".a-assignee").addEventListener("input", function(e){ a.assignee = e.target.value; onChange(); });
+      div.querySelector(".a-due").addEventListener("input", function(e){ a.dueDate = e.target.value; onChange(); });
+      div.querySelector(".a-status").addEventListener("change", function(e){ a.status = e.target.value; render(); onChange(); });
+      div.querySelector('[data-act="del"]').addEventListener("click", function(){
+        showConfirm("ToDoを削除", "このアクションアイテムを削除しますか？", function(){
+          getArray().splice(idx,1); render(); onChange();
+        });
+      });
+
+      containerEl.appendChild(div);
+    });
+  }
+  return {
+    render: render,
+    addItem: function(){
+      getArray().push({ id: uid(), content:"", assignee:"", dueDate:"", status:"未着手" });
+      render(); onChange();
+    }
+  };
+}
+
+/* ================================================================
+   MEETING (会議)
+   ================================================================ */
+var meetings = loadJSON(K_MEETINGS, []);
+var current = null;
+var dirty = false;
+
+function blankMeeting(){
+  return {
+    id: uid(), title: "", date: todayStr(), time: "", location: "",
+    participants: [],
+    agendaItems: [ { id: uid(), title: "議題1", notes: "" } ],
+    actionItems: [],
+    createdAt: Date.now(), updatedAt: Date.now()
+  };
+}
+function markDirty(){ dirty = true; document.getElementById("statusMeeting").textContent = "未保存の変更あり"; }
+
+var fTitle = document.getElementById("fTitle");
+var fDate = document.getElementById("fDate");
+var fTime = document.getElementById("fTime");
+var fLocation = document.getElementById("fLocation");
+var participantBox = document.getElementById("participantBox");
+var fParticipantInput = document.getElementById("fParticipantInput");
+var agendaListEl = document.getElementById("agendaList");
+var actionListEl = document.getElementById("actionList");
+var actionEmptyEl = document.getElementById("actionEmpty");
+
+[fTitle, fDate, fTime, fLocation].forEach(function(el){
+  el.addEventListener("input", function(){
+    if(!current) return;
+    current.title = fTitle.value; current.date = fDate.value;
+    current.time = fTime.value; current.location = fLocation.value;
+    markDirty();
+  });
+});
+
+var participantsCtrl = makeChipController(participantBox, fParticipantInput, function(){ return current.participants; }, markDirty);
+var agendaCtrl = makeSectionsController(agendaListEl, function(){ return current.agendaItems; }, "議題", markDirty, function(){
+  return { getArray: function(){ return current.actionItems; }, onChange: markDirty, refresh: function(){ actionCtrl.render(); } };
+});
+var actionCtrl = makeActionController(actionListEl, actionEmptyEl, function(){ return current.actionItems; }, markDirty);
+
+document.getElementById("btnAddAgenda").addEventListener("click", function(){ agendaCtrl.addItem(); });
+document.getElementById("btnAddAction").addEventListener("click", function(){ actionCtrl.addItem(); });
+
+function loadMeetingIntoEditor(m){
+  current = m;
+  fTitle.value = m.title || ""; fDate.value = m.date || ""; fTime.value = m.time || ""; fLocation.value = m.location || "";
+  participantsCtrl.render(); agendaCtrl.render(); actionCtrl.render();
+  dirty = false;
+  document.getElementById("statusMeeting").textContent = "読込済み";
+}
+function doNewMeeting(){
+  current = blankMeeting();
+  loadMeetingIntoEditor(current);
+  saveJSON(K_DRAFT, current);
+}
+document.getElementById("btnNewMeeting").addEventListener("click", function(){
+  if(dirty){
+    showConfirm("新規作成", "編集中の内容が保存されていません。新規作成しますか？", doNewMeeting);
+  } else { doNewMeeting(); }
+});
+document.getElementById("btnSave").addEventListener("click", function(){
+  if(!current.title.trim()){ toast("会議名を入力してください"); fTitle.focus(); return; }
+  current.updatedAt = Date.now();
+  var idx = meetings.findIndex(function(m){ return m.id === current.id; });
+  if(idx >= 0) meetings[idx] = current; else meetings.push(current);
+  saveJSON(K_MEETINGS, meetings);
+  saveJSON(K_DRAFT, current);
+  dirty = false;
+  document.getElementById("statusMeeting").textContent = "保存済み ("+new Date().toLocaleTimeString("ja-JP")+")";
+  toast("保存しました");
+});
+setInterval(function(){ if(current && dirty) saveJSON(K_DRAFT, current); }, 20000);
+setInterval(function(){ if(currentDeal && dealDirty) saveJSON(K_DRAFT_DEAL, currentDeal); }, 20000);
+window.addEventListener("beforeunload", function(e){
+  if(dirty || dealDirty){ e.preventDefault(); e.returnValue = ""; }
+});
+
+/* Meeting list */
+var meetingListArea = document.getElementById("meetingListArea");
+var searchBox = document.getElementById("searchBox");
+function renderMeetingList(){
+  var q = (searchBox.value || "").trim().toLowerCase();
+  var list = meetings.slice().sort(function(a,b){ return (b.date+b.time).localeCompare(a.date+a.time); });
+  if(q){
+    list = list.filter(function(m){
+      var hay = (m.title+" "+m.location+" "+(m.participants||[]).join(" ")).toLowerCase();
+      return hay.indexOf(q) >= 0;
+    });
+  }
+  meetingListArea.innerHTML = "";
+  if(!list.length){ meetingListArea.innerHTML = '<div class="empty-msg">保存された議事録がありません</div>'; return; }
+  list.forEach(function(m){
+    var row = document.createElement("div");
+    row.className = "meeting-row";
+    var actionCount = (m.actionItems||[]).length;
+    var doneCount = (m.actionItems||[]).filter(function(a){ return a.status==="完了"; }).length;
+    row.innerHTML =
+      '<div class="info"><div class="t">'+escapeHtml(m.title || "（無題）")+'</div>'+
+      '<div class="d">'+escapeHtml(m.date||"")+' '+escapeHtml(m.time||"")+' ・ '+escapeHtml(m.location||"")+
+      (actionCount ? ' ・ ToDo '+doneCount+'/'+actionCount : '')+'</div></div>'+
+      '<div class="btn-group"><button class="btn btn-sm btn-outline" data-act="open">開く</button>'+
+      '<button class="btn btn-sm btn-danger" data-act="del">削除</button></div>';
+    row.querySelector('[data-act="open"]').addEventListener("click", function(){
+      function doOpen(){ loadMeetingIntoEditor(JSON.parse(JSON.stringify(m))); switchToTab("editor"); }
+      if(dirty){ showConfirm("議事録を開く", "編集中の内容が保存されていません。破棄して開きますか？", doOpen); }
+      else { doOpen(); }
+    });
+    row.querySelector('[data-act="del"]').addEventListener("click", function(){
+      showConfirm("削除確認", "「"+(m.title||"無題")+"」を削除します。この操作は元に戻せません。", function(){
+        meetings = meetings.filter(function(x){ return x.id !== m.id; });
+        saveJSON(K_MEETINGS, meetings); renderMeetingList(); toast("削除しました");
+      });
+    });
+    meetingListArea.appendChild(row);
+  });
+}
+searchBox.addEventListener("input", renderMeetingList);
+
+/* Meeting PDF / Word export */
+document.getElementById("btnExportPdf").addEventListener("click", function(){ printRecord(current, "meeting"); });
+document.getElementById("btnExportWord").addEventListener("click", function(){ exportWord(current, "meeting"); });
+document.getElementById("btnExportJsonOne").addEventListener("click", function(){
+  var payload = Object.assign({}, current, { recordType: "meeting" });
+  var blob = new Blob([JSON.stringify(payload, null, 2)], {type:"application/json"});
+  downloadBlob(safeFileName("議事録_"+(current.title||"無題")+"_"+(current.date||"")+".json"), blob);
+});
+
+/* ================================================================
+   DEAL (商談)
+   ================================================================ */
+var deals = loadJSON(K_DEALS, []);
+var currentDeal = null;
+var dealDirty = false;
+
+function blankDeal(){
+  return {
+    id: uid(), title: "", date: todayStr(), time: "", location: "",
+    dealType: "", ourParticipants: [],
+    customerCompany: "", customerContacts: [],
+    phase: "", probability: "", budget: "", decisionMaker: "", competitors: "",
+    nextVisitDate: "", nextAction: "",
+    sections: [ { id: uid(), title: "確認事項1", notes: "" } ],
+    actionItems: [],
+    createdAt: Date.now(), updatedAt: Date.now()
+  };
+}
+function markDealDirty(){ dealDirty = true; document.getElementById("statusDeal").textContent = "未保存の変更あり"; }
+
+var dTitle = document.getElementById("dTitle");
+var dDate = document.getElementById("dDate");
+var dTime = document.getElementById("dTime");
+var dDealType = document.getElementById("dDealType");
+var dLocation = document.getElementById("dLocation");
+var dealParticipantBox = document.getElementById("dealParticipantBox");
+var dParticipantInput = document.getElementById("dParticipantInput");
+var dCompany = document.getElementById("dCompany");
+var contactListEl = document.getElementById("contactList");
+var dPhase = document.getElementById("dPhase");
+var dProbability = document.getElementById("dProbability");
+var dBudget = document.getElementById("dBudget");
+var dDecisionMaker = document.getElementById("dDecisionMaker");
+var dCompetitors = document.getElementById("dCompetitors");
+var dNextVisitDate = document.getElementById("dNextVisitDate");
+var dNextAction = document.getElementById("dNextAction");
+var dealSectionsListEl = document.getElementById("dealSectionsList");
+var dealActionListEl = document.getElementById("dealActionList");
+var dealActionEmptyEl = document.getElementById("dealActionEmpty");
+
+[dTitle, dDate, dTime, dDealType, dLocation, dCompany, dPhase, dProbability, dBudget, dDecisionMaker, dCompetitors, dNextVisitDate, dNextAction].forEach(function(el){
+  el.addEventListener("input", function(){
+    if(!currentDeal) return;
+    currentDeal.title = dTitle.value; currentDeal.date = dDate.value; currentDeal.time = dTime.value;
+    currentDeal.dealType = dDealType.value; currentDeal.location = dLocation.value;
+    currentDeal.customerCompany = dCompany.value;
+    currentDeal.phase = dPhase.value; currentDeal.probability = dProbability.value;
+    currentDeal.budget = dBudget.value; currentDeal.decisionMaker = dDecisionMaker.value;
+    currentDeal.competitors = dCompetitors.value;
+    currentDeal.nextVisitDate = dNextVisitDate.value; currentDeal.nextAction = dNextAction.value;
+    markDealDirty();
+  });
+  el.addEventListener("change", function(){
+    if(!currentDeal) return;
+    currentDeal.dealType = dDealType.value; currentDeal.phase = dPhase.value;
+    markDealDirty();
+  });
+});
+
+var dealParticipantsCtrl = makeChipController(dealParticipantBox, dParticipantInput, function(){ return currentDeal.ourParticipants; }, markDealDirty, "purple");
+var dealSectionsCtrl = makeSectionsController(dealSectionsListEl, function(){ return currentDeal.sections; }, "確認事項", markDealDirty, function(){
+  return { getArray: function(){ return currentDeal.actionItems; }, onChange: markDealDirty, refresh: function(){ dealActionCtrl.render(); } };
+});
+var dealActionCtrl = makeActionController(dealActionListEl, dealActionEmptyEl, function(){ return currentDeal.actionItems; }, markDealDirty);
+
+document.getElementById("btnAddDealSection").addEventListener("click", function(){ dealSectionsCtrl.addItem(); });
+document.getElementById("btnAddDealAction").addEventListener("click", function(){ dealActionCtrl.addItem(); });
+
+function renderContacts(){
+  contactListEl.innerHTML = "";
+  currentDeal.customerContacts.forEach(function(c, idx){
+    var row = document.createElement("div");
+    row.className = "contact-row";
+    row.innerHTML =
+      '<input type="text" class="c-name" placeholder="氏名" value="'+escapeHtml(c.name)+'">'+
+      '<input type="text" class="c-role" placeholder="役職" value="'+escapeHtml(c.role)+'">'+
+      '<button class="btn btn-sm btn-danger" data-act="del">削除</button>';
+    row.querySelector(".c-name").addEventListener("input", function(e){ c.name = e.target.value; markDealDirty(); });
+    row.querySelector(".c-role").addEventListener("input", function(e){ c.role = e.target.value; markDealDirty(); });
+    row.querySelector('[data-act="del"]').addEventListener("click", function(){
+      currentDeal.customerContacts.splice(idx,1); renderContacts(); markDealDirty();
+    });
+    contactListEl.appendChild(row);
+  });
+}
+document.getElementById("btnAddContact").addEventListener("click", function(){
+  currentDeal.customerContacts.push({ id: uid(), name:"", role:"" });
+  renderContacts(); markDealDirty();
+});
+
+function loadDealIntoEditor(d){
+  currentDeal = d;
+  dTitle.value = d.title || ""; dDate.value = d.date || ""; dTime.value = d.time || "";
+  dDealType.value = d.dealType || ""; dLocation.value = d.location || "";
+  dCompany.value = d.customerCompany || "";
+  dPhase.value = d.phase || ""; dProbability.value = d.probability || "";
+  dBudget.value = d.budget || ""; dDecisionMaker.value = d.decisionMaker || "";
+  dCompetitors.value = d.competitors || "";
+  dNextVisitDate.value = d.nextVisitDate || ""; dNextAction.value = d.nextAction || "";
+  dealParticipantsCtrl.render(); renderContacts(); dealSectionsCtrl.render(); dealActionCtrl.render();
+  dealDirty = false;
+  document.getElementById("statusDeal").textContent = "読込済み";
+}
+function doNewDeal(){
+  currentDeal = blankDeal();
+  loadDealIntoEditor(currentDeal);
+  saveJSON(K_DRAFT_DEAL, currentDeal);
+}
+document.getElementById("btnNewDeal").addEventListener("click", function(){
+  if(dealDirty){ showConfirm("新規作成", "編集中の内容が保存されていません。新規作成しますか？", doNewDeal); }
+  else { doNewDeal(); }
+});
+document.getElementById("btnSaveDeal").addEventListener("click", function(){
+  if(!currentDeal.title.trim()){ toast("商談タイトルを入力してください"); dTitle.focus(); return; }
+  currentDeal.updatedAt = Date.now();
+  var idx = deals.findIndex(function(x){ return x.id === currentDeal.id; });
+  if(idx >= 0) deals[idx] = currentDeal; else deals.push(currentDeal);
+  saveJSON(K_DEALS, deals);
+  saveJSON(K_DRAFT_DEAL, currentDeal);
+  dealDirty = false;
+  document.getElementById("statusDeal").textContent = "保存済み ("+new Date().toLocaleTimeString("ja-JP")+")";
+  toast("保存しました");
+});
+
+/* Deal list */
+var dealListArea = document.getElementById("dealListArea");
+var dealSearchBox = document.getElementById("dealSearchBox");
+function renderDealList(){
+  var q = (dealSearchBox.value || "").trim().toLowerCase();
+  var list = deals.slice().sort(function(a,b){ return (b.date+b.time).localeCompare(a.date+a.time); });
+  if(q){
+    list = list.filter(function(d){
+      var contactNames = (d.customerContacts||[]).map(function(c){ return c.name; }).join(" ");
+      var hay = (d.title+" "+d.customerCompany+" "+contactNames).toLowerCase();
+      return hay.indexOf(q) >= 0;
+    });
+  }
+  dealListArea.innerHTML = "";
+  if(!list.length){ dealListArea.innerHTML = '<div class="empty-msg">保存された商談議事録がありません</div>'; return; }
+  list.forEach(function(d){
+    var row = document.createElement("div");
+    row.className = "meeting-row";
+    var phaseBadge = d.phase ? '<span class="phase-badge phase-'+escapeHtml(d.phase)+'">'+escapeHtml(d.phase)+'</span>' : '';
+    var prob = d.probability ? ' ・ 確度 '+escapeHtml(d.probability)+'%' : '';
+    row.innerHTML =
+      '<div class="info"><div class="t">'+escapeHtml(d.title || "（無題）")+' '+phaseBadge+'</div>'+
+      '<div class="d">'+escapeHtml(d.date||"")+' ・ '+escapeHtml(d.customerCompany||"")+prob+'</div></div>'+
+      '<div class="btn-group"><button class="btn btn-sm btn-outline-deal" data-act="open">開く</button>'+
+      '<button class="btn btn-sm btn-danger" data-act="del">削除</button></div>';
+    row.querySelector('[data-act="open"]').addEventListener("click", function(){
+      function doOpen(){ loadDealIntoEditor(JSON.parse(JSON.stringify(d))); switchToTab("dealEditor"); }
+      if(dealDirty){ showConfirm("商談議事録を開く", "編集中の内容が保存されていません。破棄して開きますか？", doOpen); }
+      else { doOpen(); }
+    });
+    row.querySelector('[data-act="del"]').addEventListener("click", function(){
+      showConfirm("削除確認", "「"+(d.title||"無題")+"」を削除します。この操作は元に戻せません。", function(){
+        deals = deals.filter(function(x){ return x.id !== d.id; });
+        saveJSON(K_DEALS, deals); renderDealList(); toast("削除しました");
+      });
+    });
+    dealListArea.appendChild(row);
+  });
+}
+dealSearchBox.addEventListener("input", renderDealList);
+
+document.getElementById("btnExportDealPdf").addEventListener("click", function(){ printRecord(currentDeal, "deal"); });
+document.getElementById("btnExportDealWord").addEventListener("click", function(){ exportWord(currentDeal, "deal"); });
+document.getElementById("btnExportDealJsonOne").addEventListener("click", function(){
+  var payload = Object.assign({}, currentDeal, { recordType: "deal" });
+  var blob = new Blob([JSON.stringify(payload, null, 2)], {type:"application/json"});
+  downloadBlob(safeFileName("商談_"+(currentDeal.title||"無題")+"_"+(currentDeal.date||"")+".json"), blob);
+});
+
+/* ================================================================
+   Tabs
+   ================================================================ */
+var tabBtns = document.querySelectorAll(".tab-btn");
+function switchToTab(name){
+  tabBtns.forEach(function(b){ b.classList.toggle("active", b.dataset.tab === name); });
+  document.querySelectorAll(".tab-panel").forEach(function(p){ p.classList.toggle("active", p.id === "tab-"+name); });
+  if(name === "list") renderMeetingList();
+  if(name === "dealList") renderDealList();
+  if(name === "templates") renderTemplateList();
+  if(name === "editor") renderTemplateSelect();
+  if(name === "dealEditor") renderDealTemplateSelect();
+}
+tabBtns.forEach(function(btn){
+  btn.addEventListener("click", function(){ switchToTab(btn.dataset.tab); });
+});
+
+/* ================================================================
+   Templates (shared, type-aware)
+   ================================================================ */
+var templates = loadJSON(K_TEMPLATES, []);
+var templateListAreaMeeting = document.getElementById("templateListAreaMeeting");
+var templateListAreaDeal = document.getElementById("templateListAreaDeal");
+var fApplyTemplate = document.getElementById("fApplyTemplate");
+var dApplyTemplate = document.getElementById("dApplyTemplate");
+
+function templateType(t){ return t.type === "deal" ? "deal" : "meeting"; }
+
+function renderTemplateList(){
+  var mList = templates.filter(function(t){ return templateType(t) === "meeting"; });
+  var dList = templates.filter(function(t){ return templateType(t) === "deal"; });
+
+  templateListAreaMeeting.innerHTML = mList.length ? "" : '<div class="empty-msg">会議用テンプレートがありません</div>';
+  mList.forEach(function(t){ templateListAreaMeeting.appendChild(buildTemplateRow(t)); });
+
+  templateListAreaDeal.innerHTML = dList.length ? "" : '<div class="empty-msg">商談用テンプレートがありません</div>';
+  dList.forEach(function(t){ templateListAreaDeal.appendChild(buildTemplateRow(t)); });
+}
+function buildTemplateRow(t){
+  var row = document.createElement("div");
+  row.className = "meeting-row";
+  row.innerHTML =
+    '<div class="info"><div class="t">'+escapeHtml(t.name)+'</div>'+
+    '<div class="d">項目 '+(t.sections||[]).length+'件 ・ 担当者 '+(t.participants||[]).length+'名</div></div>'+
+    '<div class="btn-group"><button class="btn btn-sm btn-outline" data-act="apply">適用</button>'+
+    '<button class="btn btn-sm btn-danger" data-act="del">削除</button></div>';
+  row.querySelector('[data-act="apply"]').addEventListener("click", function(){
+    if(templateType(t) === "deal"){
+      applyTemplateToDeal(t); switchToTab("dealEditor");
+    } else {
+      applyTemplateToMeeting(t); switchToTab("editor");
+    }
+    toast("テンプレートを適用しました");
+  });
+  row.querySelector('[data-act="del"]').addEventListener("click", function(){
+    showConfirm("テンプレート削除", "「"+t.name+"」を削除しますか？", function(){
+      templates = templates.filter(function(x){ return x.id !== t.id; });
+      saveJSON(K_TEMPLATES, templates);
+      renderTemplateList(); renderTemplateSelect(); renderDealTemplateSelect();
+    });
+  });
+  return row;
+}
+
+function renderTemplateSelect(){
+  fApplyTemplate.innerHTML = '<option value="">-- 選択してください --</option>';
+  templates.filter(function(t){ return templateType(t)==="meeting"; }).forEach(function(t){
+    var opt = document.createElement("option"); opt.value = t.id; opt.textContent = t.name;
+    fApplyTemplate.appendChild(opt);
+  });
+}
+function renderDealTemplateSelect(){
+  dApplyTemplate.innerHTML = '<option value="">-- 選択してください --</option>';
+  templates.filter(function(t){ return templateType(t)==="deal"; }).forEach(function(t){
+    var opt = document.createElement("option"); opt.value = t.id; opt.textContent = t.name;
+    dApplyTemplate.appendChild(opt);
+  });
+}
+fApplyTemplate.addEventListener("change", function(){
+  if(!fApplyTemplate.value) return;
+  var t = templates.find(function(x){ return x.id === fApplyTemplate.value; });
+  if(t){ applyTemplateToMeeting(t); toast("テンプレートを適用しました"); }
+  fApplyTemplate.value = "";
+});
+dApplyTemplate.addEventListener("change", function(){
+  if(!dApplyTemplate.value) return;
+  var t = templates.find(function(x){ return x.id === dApplyTemplate.value; });
+  if(t){ applyTemplateToDeal(t); toast("テンプレートを適用しました"); }
+  dApplyTemplate.value = "";
+});
+
+function applyTemplateToMeeting(t){
+  (t.sections||[]).forEach(function(s){ current.agendaItems.push({ id: uid(), title: s.title || "", notes: "" }); });
+  (t.participants||[]).forEach(function(p){ if(current.participants.indexOf(p) === -1) current.participants.push(p); });
+  agendaCtrl.render(); participantsCtrl.render(); markDirty();
+}
+function applyTemplateToDeal(t){
+  (t.sections||[]).forEach(function(s){ currentDeal.sections.push({ id: uid(), title: s.title || "", notes: "" }); });
+  (t.participants||[]).forEach(function(p){ if(currentDeal.ourParticipants.indexOf(p) === -1) currentDeal.ourParticipants.push(p); });
+  dealSectionsCtrl.render(); dealParticipantsCtrl.render(); markDealDirty();
+}
+
+document.getElementById("btnSaveAsTemplate").addEventListener("click", function(){
+  showPrompt("テンプレート名", current.title || "", function(name){
+    templates.push({
+      id: uid(), type: "meeting", name: name,
+      sections: current.agendaItems.map(function(a){ return {title:a.title}; }),
+      participants: current.participants.slice()
+    });
+    saveJSON(K_TEMPLATES, templates);
+    renderTemplateList(); renderTemplateSelect();
+    toast("テンプレートを保存しました");
+  });
+});
+document.getElementById("btnSaveDealAsTemplate").addEventListener("click", function(){
+  showPrompt("テンプレート名", currentDeal.title || "", function(name){
+    templates.push({
+      id: uid(), type: "deal", name: name,
+      sections: currentDeal.sections.map(function(a){ return {title:a.title}; }),
+      participants: currentDeal.ourParticipants.slice()
+    });
+    saveJSON(K_TEMPLATES, templates);
+    renderTemplateList(); renderDealTemplateSelect();
+    toast("テンプレートを保存しました");
+  });
+});
+
+/* ================================================================
+   JSON import / export (combined)
+   ================================================================ */
+function exportAllJson(){
+  var payload = { exportedAt: new Date().toISOString(), meetings: meetings, deals: deals, templates: templates };
+  var blob = new Blob([JSON.stringify(payload, null, 2)], {type:"application/json"});
+  downloadBlob("議事録_全件バックアップ_"+todayStr()+".json", blob);
+}
+document.getElementById("btnExportJsonAll").addEventListener("click", exportAllJson);
+document.getElementById("btnExportJsonAllDeal").addEventListener("click", exportAllJson);
+
+function categorizeRecord(obj){
+  if(obj.recordType === "deal") return "deal";
+  if(obj.recordType === "meeting") return "meeting";
+  if(obj.customerCompany !== undefined || obj.phase !== undefined || obj.dealType !== undefined || obj.customerContacts !== undefined) return "deal";
+  return "meeting";
+}
+function handleImportFile(file){
+  var reader = new FileReader();
+  reader.onload = function(ev){
+    try{
+      var data = JSON.parse(ev.target.result);
+      var importedMeetings = [], importedDeals = [], importedTemplates = [];
+
+      if(Array.isArray(data)){
+        data.forEach(function(item){
+          if(categorizeRecord(item) === "deal") importedDeals.push(item); else importedMeetings.push(item);
+        });
+      } else if(data && (data.meetings || data.deals || data.templates)){
+        importedMeetings = data.meetings || [];
+        importedDeals = data.deals || [];
+        importedTemplates = data.templates || [];
+      } else if(data && data.id){
+        if(categorizeRecord(data) === "deal") importedDeals.push(data); else importedMeetings.push(data);
+      }
+
+      var addedM = 0, addedD = 0, addedT = 0;
+      importedMeetings.forEach(function(m){
+        if(!m || typeof m !== "object") return;
+        var copy = JSON.parse(JSON.stringify(m));
+        delete copy.recordType;
+        if(!copy.id || meetings.some(function(x){ return x.id === copy.id; })) copy.id = uid();
+        meetings.push(copy); addedM++;
+      });
+      importedDeals.forEach(function(d){
+        if(!d || typeof d !== "object") return;
+        var copy = JSON.parse(JSON.stringify(d));
+        delete copy.recordType;
+        if(!copy.id || deals.some(function(x){ return x.id === copy.id; })) copy.id = uid();
+        deals.push(copy); addedD++;
+      });
+      importedTemplates.forEach(function(t){
+        var copy = JSON.parse(JSON.stringify(t));
+        if(!copy.id || templates.some(function(x){ return x.id === copy.id; })) copy.id = uid();
+        templates.push(copy); addedT++;
+      });
+
+      saveJSON(K_MEETINGS, meetings); saveJSON(K_DEALS, deals); saveJSON(K_TEMPLATES, templates);
+      renderMeetingList(); renderDealList(); renderTemplateList(); renderTemplateSelect(); renderDealTemplateSelect();
+      toast("取込完了：会議 "+addedM+"件 / 商談 "+addedD+"件 / テンプレート "+addedT+"件");
+    }catch(err){
+      toast("JSONの読み込みに失敗しました");
+    }
+  };
+  reader.readAsText(file, "UTF-8");
+}
+document.getElementById("btnImportJson").addEventListener("click", function(){ document.getElementById("fileImport").click(); });
+document.getElementById("fileImport").addEventListener("change", function(e){
+  var file = e.target.files[0]; if(!file) return;
+  handleImportFile(file); e.target.value = "";
+});
+document.getElementById("btnImportJsonDeal").addEventListener("click", function(){ document.getElementById("fileImportDeal").click(); });
+document.getElementById("fileImportDeal").addEventListener("change", function(e){
+  var file = e.target.files[0]; if(!file) return;
+  handleImportFile(file); e.target.value = "";
+});
+
+/* ================================================================
+   PDF (print) & Word export — shared for meeting/deal
+   ================================================================ */
+function printRecord(obj, kind){
+  var metaHtml = "";
+  if(kind === "meeting"){
+    document.getElementById("pTitle").textContent = obj.title || "（無題の会議）";
+    metaHtml += "<div>日時： "+escapeHtml(obj.date||"")+" "+escapeHtml(obj.time||"")+"</div>";
+    metaHtml += "<div>場所： "+escapeHtml(obj.location||"")+"</div>";
+    metaHtml += "<div>参加者： "+escapeHtml((obj.participants||[]).join("、"))+"</div>";
+  } else {
+    document.getElementById("pTitle").textContent = obj.title || "（無題の商談）";
+    var contacts = (obj.customerContacts||[]).map(function(c){ return c.name+(c.role?"（"+c.role+"）":""); }).join("、");
+    metaHtml += "<div>日時： "+escapeHtml(obj.date||"")+" "+escapeHtml(obj.time||"")+" ・ 種別： "+escapeHtml(obj.dealType||"")+"</div>";
+    metaHtml += "<div>場所： "+escapeHtml(obj.location||"")+"</div>";
+    metaHtml += "<div>自社担当者： "+escapeHtml((obj.ourParticipants||[]).join("、"))+"</div>";
+    metaHtml += "<div>顧客： "+escapeHtml(obj.customerCompany||"")+" ／ 先方担当者： "+escapeHtml(contacts)+"</div>";
+    metaHtml += "<div>フェーズ： "+escapeHtml(obj.phase||"")+" ／ 受注確度： "+escapeHtml(obj.probability?obj.probability+"%":"")+"</div>";
+    metaHtml += "<div>予算： "+escapeHtml(obj.budget||"")+" ／ 決裁者： "+escapeHtml(obj.decisionMaker||"")+"</div>";
+    if(obj.competitors) metaHtml += "<div>競合情報： "+escapeHtml(obj.competitors)+"</div>";
+    metaHtml += "<div>次回アクション： "+escapeHtml(obj.nextAction||"")+"（"+escapeHtml(obj.nextVisitDate||"未定")+"）</div>";
+  }
+  document.getElementById("pMeta").innerHTML = metaHtml;
+
+  var items = kind === "meeting" ? obj.agendaItems : obj.sections;
+  var agHtml = "";
+  (items||[]).forEach(function(a, i){
+    agHtml += "<h4>"+(i+1)+". "+escapeHtml(a.title||"")+"</h4>";
+    agHtml += "<pre>"+escapeHtml(a.notes||"（メモなし）")+"</pre>";
+  });
+  document.getElementById("pAgenda").innerHTML = agHtml;
+
+  var actHtml = "";
+  if(obj.actionItems && obj.actionItems.length){
+    actHtml += "<h4>ToDo / アクションアイテム</h4>";
+    actHtml += '<table class="print-table"><tr><th>内容</th><th>担当者</th><th>期限</th><th>状態</th></tr>';
+    obj.actionItems.forEach(function(a){
+      actHtml += "<tr><td>"+escapeHtml(a.content||"")+"</td><td>"+escapeHtml(a.assignee||"")+"</td><td>"+escapeHtml(a.dueDate||"")+"</td><td>"+escapeHtml(a.status||"")+"</td></tr>";
+    });
+    actHtml += "</table>";
+  }
+  document.getElementById("pActionWrap").innerHTML = actHtml;
+
+  window.print();
+}
+
+function exportWord(obj, kind){
+  var items = kind === "meeting" ? obj.agendaItems : obj.sections;
+  var agHtml = "";
+  (items||[]).forEach(function(a, i){
+    agHtml += "<h3>"+(i+1)+". "+escapeHtml(a.title||"")+"</h3>";
+    agHtml += "<p style='white-space:pre-wrap;'>"+escapeHtml(a.notes||"（メモなし）")+"</p>";
+  });
+  var actHtml = "";
+  if(obj.actionItems && obj.actionItems.length){
+    actHtml += "<h3>ToDo / アクションアイテム</h3>";
+    actHtml += "<table border='1' cellspacing='0' cellpadding='6' style='border-collapse:collapse; width:100%;'>";
+    actHtml += "<tr><th>内容</th><th>担当者</th><th>期限</th><th>状態</th></tr>";
+    obj.actionItems.forEach(function(a){
+      actHtml += "<tr><td>"+escapeHtml(a.content||"")+"</td><td>"+escapeHtml(a.assignee||"")+"</td><td>"+escapeHtml(a.dueDate||"")+"</td><td>"+escapeHtml(a.status||"")+"</td></tr>";
+    });
+    actHtml += "</table>";
+  }
+
+  var metaHtml = "";
+  if(kind === "meeting"){
+    metaHtml = "<p>日時： "+escapeHtml(obj.date||"")+" "+escapeHtml(obj.time||"")+"<br>"+
+      "場所： "+escapeHtml(obj.location||"")+"<br>"+
+      "参加者： "+escapeHtml((obj.participants||[]).join("、"))+"</p>";
+  } else {
+    var contacts = (obj.customerContacts||[]).map(function(c){ return c.name+(c.role?"（"+c.role+"）":""); }).join("、");
+    metaHtml = "<p>日時： "+escapeHtml(obj.date||"")+" "+escapeHtml(obj.time||"")+" ／ 種別： "+escapeHtml(obj.dealType||"")+"<br>"+
+      "場所： "+escapeHtml(obj.location||"")+"<br>"+
+      "自社担当者： "+escapeHtml((obj.ourParticipants||[]).join("、"))+"<br>"+
+      "顧客： "+escapeHtml(obj.customerCompany||"")+" ／ 先方担当者： "+escapeHtml(contacts)+"<br>"+
+      "フェーズ： "+escapeHtml(obj.phase||"")+" ／ 受注確度： "+escapeHtml(obj.probability?obj.probability+"%":"")+"<br>"+
+      "予算： "+escapeHtml(obj.budget||"")+" ／ 決裁者： "+escapeHtml(obj.decisionMaker||"")+"<br>"+
+      (obj.competitors ? ("競合情報： "+escapeHtml(obj.competitors)+"<br>") : "")+
+      "次回アクション： "+escapeHtml(obj.nextAction||"")+"（"+escapeHtml(obj.nextVisitDate||"未定")+"）</p>";
+  }
+
+  var html =
+    "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'>"+
+    "<head><meta charset='utf-8'><title>"+escapeHtml(obj.title||"議事録")+"</title></head>"+
+    "<body style='font-family:\"Yu Gothic\",Meiryo,sans-serif;'>"+
+    "<h1>"+escapeHtml(obj.title||(kind==="meeting"?"（無題の会議）":"（無題の商談）"))+"</h1>"+
+    metaHtml + "<hr>" + agHtml + actHtml +
+    "</body></html>";
+
+  var blob = new Blob(['\ufeff', html], {type: "application/msword"});
+  var prefix = kind === "meeting" ? "議事録_" : "商談_";
+  downloadBlob(safeFileName(prefix+(obj.title||"無題")+"_"+(obj.date||"")+".doc"), blob);
+  toast("Word形式（.doc）で出力しました。開く際に形式の確認メッセージが出ることがありますが「はい」で開けます。");
+}
+
+/* ---------------- Init ---------------- */
+function init(){
+  var draft = loadJSON(K_DRAFT, null);
+  current = (draft && draft.id) ? draft : blankMeeting();
+  loadMeetingIntoEditor(current);
+
+  var dealDraft = loadJSON(K_DRAFT_DEAL, null);
+  currentDeal = (dealDraft && dealDraft.id) ? dealDraft : blankDeal();
+  loadDealIntoEditor(currentDeal);
+
+  renderTemplateSelect(); renderDealTemplateSelect();
+  renderMeetingList(); renderDealList(); renderTemplateList();
+}
+init();
+
+})();
+</script>
+</body>
+</html>
